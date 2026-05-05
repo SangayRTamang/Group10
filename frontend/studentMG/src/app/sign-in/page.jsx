@@ -2,177 +2,261 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-
-const ROLES = [
-  { key: "admin", label: "Admin", icon: "🛡️" },
-  { key: "teacher", label: "Teacher", icon: "📚" },
-  { key: "student", label: "Student", icon: "🎒" },
-];
+import "./page.css";
 
 const ROLE_ROUTES = {
   admin: "/admin",
-  teacher: "/teacher",
-  student: "/student",
+  teacher: "/list/teachers",
+  student: "/list/students",
 };
 
-const INPUT_BASE =
-  "w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 shadow-sm transition focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-300";
+const ROLE_EXTRA_FIELDS = {
+  admin: [
+    {
+      key: "adminCode",
+      label: "Admin Code",
+      type: "input",
+      placeholder: "Enter admin code",
+      full: true,
+      required: true,
+    },
+  ],
+  teacher: [
+    {
+      key: "subject",
+      label: "Subject",
+      type: "select",
+      options: ["Math", "Science", "English", "History", "Art", "PE"],
+      required: true,
+    },
+    {
+      key: "teacherId",
+      label: "Teacher ID",
+      type: "input",
+      placeholder: "T-0001",
+      required: true,
+    },
+  ],
+  student: [
+    {
+      key: "grade",
+      label: "Grade",
+      type: "select",
+      options: ["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"],
+      required: true,
+    },
+    {
+      key: "studentId",
+      label: "Student ID",
+      type: "input",
+      placeholder: "S-0001",
+      required: true,
+    },
+  ],
+};
 
-const SignInPage = () => {
+const ROLE_STYLES = {
+  admin:   { selected: "selected-admin",   submit: "submit-admin" },
+  teacher: { selected: "selected-teacher", submit: "submit-teacher" },
+  student: { selected: "selected-student", submit: "submit-student" },
+};
+
+export default function RegisterPage() {
   const router = useRouter();
-  const [role, setRole] = useState("admin");
-  const [form, setForm] = useState({ email: "", password: "" });
-  const [remember, setRemember] = useState(false);
+
+  const [role, setRole] = useState("teacher");
+  const [form, setForm] = useState({});
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
 
   function handleChange(e) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   }
 
-  function validate() {
-    if (!form.email.trim() || !form.email.includes("@")) {
-      return "Please enter a valid email address.";
-    }
-    if (form.password.length < 4) {
-      return "Password must be at least 4 characters.";
-    }
-    return null;
-  }
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    const err = validate();
-    if (err) {
-      setError(err);
-      return;
-    }
-
-    setLoading(true);
+  // Reset role-specific fields when switching roles so stale values don't linger
+  function handleRoleChange(newRole) {
+    setRole(newRole);
     setError("");
+    const extraKeys = ROLE_EXTRA_FIELDS[newRole].map((f) => f.key);
+    setForm((prev) => {
+      const next = { ...prev };
+      // Clear all possible extra keys from all roles
+      ["adminCode", "department", "subject", "teacherId", "grade", "studentId"].forEach(
+        (k) => { if (!extraKeys.includes(k)) delete next[k]; }
+      );
+      return next;
+    });
+  }
 
-    await new Promise((r) => setTimeout(r, 700));
-    const data = await import("@/lib/data");
-    data.setRole(role);
+  function handleSubmit(e) {
+    e.preventDefault();
+
+    const { firstName, lastName, email, password, confirmPassword } = form;
+
+    // --- Common field validation ---
+    if (!firstName?.trim() || !lastName?.trim()) {
+      return setError("Please enter your full name.");
+    }
+    if (!email || !email.includes("@")) {
+      return setError("Please enter a valid email address.");
+    }
+    if (!password || password.length < 6) {
+      return setError("Password must be at least 6 characters.");
+    }
+    if (password !== confirmPassword) {
+      return setError("Passwords do not match.");
+    }
+
+    // FIX 5: validate role-specific required fields (was completely missing before)
+    for (const field of ROLE_EXTRA_FIELDS[role]) {
+      if (field.required && !form[field.key]?.trim()) {
+        return setError(`${field.label} is required.`);
+      }
+    }
+
+    setError("");
     router.push(ROLE_ROUTES[role]);
   }
 
+  const extraFields = ROLE_EXTRA_FIELDS[role];
+
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-5xl bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden grid grid-cols-1 lg:grid-cols-2">
-        <section className="hidden lg:flex flex-col justify-between bg-slate-900 text-white p-10">
+    <div className="reg-root">
+      <div className="reg-card">
+
+        {/* HEADER */}
+        <div className="reg-header">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-slate-300">School Hub</p>
-            <h1 className="mt-4 text-3xl font-semibold leading-tight">
-              Smart school management starts here.
-            </h1>
-            <p className="mt-4 text-sm text-slate-300">
-              Sign in as Admin, Teacher, or Student and continue to your personalized dashboard.
-            </p>
+            <h1>Student Hub</h1>
+            <p>Create your account</p>
           </div>
-          <div className="space-y-3 text-sm">
-            <div className="rounded-xl bg-white/10 border border-white/10 p-4">
-              Keep all campus activities in one place.
-            </div>
-            <div className="rounded-xl bg-white/10 border border-white/10 p-4">
-              Secure role-based access with a clean interface.
-            </div>
-          </div>
-        </section>
+        </div>
 
-        <section className="p-6 sm:p-8 md:p-10">
-          <div className="mb-6">
-            <h2 className="text-2xl font-semibold text-slate-800">Sign In</h2>
-            <p className="mt-1 text-sm text-slate-500">Welcome back. Please enter your details.</p>
+        <form className="reg-body" onSubmit={handleSubmit}>
+
+          {/* ROLE SELECTOR */}
+          <div className="role-grid">
+            {["admin", "teacher", "student"].map((r) => (
+              <button
+                key={r}
+                type="button"
+                className={`role-btn ${role === r ? ROLE_STYLES[r].selected : ""}`}
+                onClick={() => handleRoleChange(r)}
+              >
+                {r.charAt(0).toUpperCase() + r.slice(1)}
+              </button>
+            ))}
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Sign in as</p>
-              <div className="grid grid-cols-3 gap-2">
-                {ROLES.map(({ key, label, icon }) => {
-                  const active = role === key;
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => setRole(key)}
-                      className={`flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border transition-all text-slate-700
-                      ${
-                        active
-                          ? "ring-2 ring-slate-600 border-slate-400 bg-slate-100"
-                          : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
-                      }`}
-                    >
-                      <span className="text-xl">{icon}</span>
-                      <span className="text-xs font-medium">{label}</span>
-                    </button>
-                  );
-                })}
+          {/* ROLE-SPECIFIC EXTRA FIELDS — now properly wired to handleChange */}
+          <div className="field-grid">
+            {extraFields.map((field) => (
+              <div
+                key={field.key}
+                className={`field-group ${field.full ? "field-full" : ""}`}
+              >
+                <label htmlFor={field.key}>{field.label}</label>
+
+                {field.type === "select" ? (
+                  <select
+                    id={field.key}
+                    name={field.key}
+                    value={form[field.key] || ""}
+                    onChange={handleChange}
+                  >
+                    <option value="">Select…</option>
+                    {field.options.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    id={field.key}
+                    name={field.key}
+                    placeholder={field.placeholder}
+                    value={form[field.key] || ""}
+                    onChange={handleChange}
+                    autoComplete="off"
+                  />
+                )}
               </div>
-            </div>
+            ))}
+          </div>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-slate-500 uppercase tracking-wide">Email address</label>
+          {/* COMMON FIELDS */}
+          <div className="field-grid">
+            <div className="field-group">
+              <label htmlFor="firstName">First Name</label>
               <input
-                type="email"
-                name="email"
-                value={form.email}
+                id="firstName"
+                name="firstName"
+                value={form.firstName || ""}
                 onChange={handleChange}
-                placeholder="you@school.edu"
-                className={INPUT_BASE}
+                autoComplete="given-name"
               />
             </div>
-
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-slate-500 uppercase tracking-wide">Password</label>
+            <div className="field-group">
+              <label htmlFor="lastName">Last Name</label>
               <input
-                type="password"
+                id="lastName"
+                name="lastName"
+                value={form.lastName || ""}
+                onChange={handleChange}
+                autoComplete="family-name"
+              />
+            </div>
+          </div>
+
+          <div className="field-group field-full">
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="mail@school.edu"
+              value={form.email || ""}
+              onChange={handleChange}
+              autoComplete="email"
+            />
+          </div>
+
+          <div className="field-grid">
+            <div className="field-group">
+              <label htmlFor="password">Password</label>
+              <input
+                id="password"
                 name="password"
-                value={form.password}
+                type="password"
+                placeholder="Min. 6 characters"
+                value={form.password || ""}
                 onChange={handleChange}
-                placeholder="Enter your password"
-                className={INPUT_BASE}
               />
             </div>
 
-            <div className="flex items-center justify-between text-xs">
-              <label className="inline-flex items-center gap-2 text-slate-600">
-                <input
-                  type="checkbox"
-                  checked={remember}
-                  onChange={() => setRemember((v) => !v)}
-                  className="rounded border-slate-300"
-                />
-                Remember me
-              </label>
-              <Link href="/sign-in" className="text-slate-600 hover:text-slate-900 hover:underline">
-                Forgot password?
-              </Link>
+            <div className="field-group">
+              <label htmlFor="confirmPassword">Confirm Password</label>
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                placeholder="Repeat password"
+                value={form.confirmPassword || ""}
+                onChange={handleChange}
+              />
             </div>
+          </div>
 
-            {error && <p className="text-xs text-red-500">{error}</p>}
+          {error && <div className="error-msg">{error}</div>}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 rounded-xl text-sm font-semibold shadow-sm transition-all active:scale-[0.98] disabled:opacity-60 bg-slate-900 text-white hover:bg-slate-800"
-            >
-              {loading ? "Signing in..." : "Sign In"}
-            </button>
+          <button
+            type="submit"
+            className={`submit-btn ${ROLE_STYLES[role].submit}`}
+          >
+            Create Account
+          </button>
 
-            <p className="text-xs text-slate-500 text-center">
-              Need an account?{" "}
-              <Link href="/sign-in" className="text-slate-700 font-medium hover:underline">
-                Contact admin
-              </Link>
-            </p>
-          </form>
-        </section>
+        </form>
       </div>
     </div>
   );
-};
-
-export default SignInPage;
+}
