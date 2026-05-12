@@ -254,6 +254,13 @@ export default function RegisterPage() {
           >
             Create Account
           </button>
+          
+          <div className="signin-prompt">
+            <p>
+              Haven't registered yet?{" "}
+              <a href="/register" className="signin-link">Do it now</a>
+            </p>
+          </div>
 
         </form>
       </div>

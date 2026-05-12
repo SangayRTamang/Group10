@@ -4,6 +4,29 @@
   box-sizing: border-box;
 }
 
+.signin-prompt {
+  text-align: center;
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.signin-prompt p {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.signin-link {
+  color: #4a90d9;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.signin-link:hover {
+  text-decoration: underline;
+}
+
 .reg-root {
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
